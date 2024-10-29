@@ -49,12 +49,6 @@ const guiParams = {
 	Background: false
 }
 
-// if the URL contains "ao" then the AO demo will be loaded
-const isAoDemo = window.location.search.includes("ao")
-
-// extract if the paramaterer "traa_test" is set to true in the URL
-const traaTest = new URLSearchParams(window.location.search).get("traa_test") === "true"
-
 const scene = new THREE.Scene()
 scene.matrixWorldAutoUpdate = false
 window.scene = scene
@@ -67,17 +61,8 @@ const camera = new THREE.PerspectiveCamera(40, window.innerWidth / window.innerH
 scene.add(camera)
 
 const canvas = document.querySelector(".webgl")
-const traaModelBtn = document.querySelector("#traaModelBtn")
 const infoEl = document.querySelector("#info")
 infoEl.style.display = "block"
-
-const loadTRAATestModel = () => gltflLoader.load("time_machine.optimized.glb", setupAsset)
-
-if (traaTest && !window.location.search.includes("traa_test_model=true")) {
-	traaModelBtn.addEventListener("click", loadTRAATestModel)
-} else {
-	traaModelBtn.remove()
-}
 
 let rendererCanvas = canvas
 
@@ -112,11 +97,6 @@ const setAA = value => {
 	composer.removePass(fxaaPass)
 	composer.removePass(effectPass)
 
-	if (traaTest) {
-		infoEl.innerHTML = `Press the number buttons to change the AA method. 1 = TRAA, 2 = MSAA, 3 = FXAA, 4 = SMAA, 5 = Disabled.
-			<br>Current method: <div id="aaMethod">${value}</div>`
-	}
-
 	switch (value) {
 		case "TRAA":
 			composer.addPass(traaPass)
@@ -148,7 +128,7 @@ const setAA = value => {
 const controls = new OrbitControls(camera, document.querySelector("#orbitControlsDomElem"))
 controls.enableDamping = true
 
-const cameraY = traaTest ? 7 : 8.75
+const cameraY = 8.75
 camera.position.fromArray([0, cameraY, 25])
 controls.target.set(0, cameraY, 0)
 controls.maxPolarAngle = Math.PI / 2
@@ -156,13 +136,8 @@ controls.minDistance = 5
 window.controls = controls
 window.camera = camera
 
-if (isAoDemo) {
-	camera.position.fromArray([4, 3, 0])
-	controls.target.set(0, 3, 0)
-}
-
 const composer = new POSTPROCESSING.EffectComposer(renderer)
-if (traaTest || true) {
+if (true) {
 	const renderPass = new POSTPROCESSING.RenderPass(scene, camera)
 	composer.addPass(renderPass)
 }
@@ -210,7 +185,7 @@ const initEnvMap = async envMap => {
 	envMap.mapping = EquirectangularReflectionMapping
 
 	scene.environment = envMap
-	scene.background = traaTest ? new Color(0x4c7fe5) : null
+	scene.background = null
 
 	setEnvMesh(envMap)
 }
@@ -227,18 +202,16 @@ const cubeMapTest = () => {
 }
 
 const setEnvMesh = envMap => {
-	if (!traaTest) {
-		envMesh?.removeFromParent()
-		envMesh?.material.dispose()
-		envMesh?.geometry.dispose()
+	envMesh?.removeFromParent()
+	envMesh?.material.dispose()
+	envMesh?.geometry.dispose()
 
-		envMesh = new GroundProjectedSkybox(envMap)
-		envMesh.radius = 100
-		envMesh.height = 20
-		envMesh.scale.setScalar(100)
-		envMesh.updateMatrixWorld()
-		scene.add(envMesh)
-	}
+	envMesh = new GroundProjectedSkybox(envMap)
+	envMesh.radius = 100
+	envMesh.height = 20
+	envMesh.scale.setScalar(100)
+	envMesh.updateMatrixWorld()
+	scene.add(envMesh)
 }
 
 const environments = [
@@ -265,23 +238,9 @@ gltflLoader.setDRACOLoader(draco)
 
 let url
 let loadFiles
-if (traaTest) {
-	if (window.location.search.includes("traa_test_model=true")) {
-		url = "time_machine.optimized.glb"
-		loadFiles = 5
-	} else {
-		url = "traa_demo_scene.optimized.glb"
-		loadFiles = 15
-	}
-} else {
-	if (isAoDemo) {
-		url = "sponza_no_textures.optimized.glb"
-		loadFiles = 7
-	} else {
-		url = "squid_game.optimized.glb"
-		loadFiles = 8
-	}
-}
+
+url = "squid_game.optimized.glb"
+loadFiles = 8
 
 let lastScene
 
@@ -436,134 +395,19 @@ const initScene = async () => {
 
 	gui2 = new SSGIDebugGUI(ssgiEffect, options)
 	gui2.pane.containerElem_.style.left = "8px"
-	if (traaTest) gui2.pane.element.style.visibility = "hidden"
 
 	new POSTPROCESSING.LUT3dlLoader().load("lut.3dl").then(lutTexture => {
 		const lutEffect = new POSTPROCESSING.LUT3DEffect(lutTexture)
 
-		if (isAoDemo) {
-			const hbaoOptions = {
-				resolutionScale: 1,
-				spp: 16,
-				distance: 2.1399999999999997,
-				distancePower: 1,
-				power: 2,
-				bias: 39,
-				thickness: 0.1,
-				color: 0,
-				useNormalPass: false,
-				velocityDepthNormalPass: null,
-				normalTexture: null,
-				iterations: 1,
-				samples: 5
-			}
+		if (fps >= 256) {
+			composer.addPass(new POSTPROCESSING.EffectPass(camera, ssgiEffect, bloomEffect, vignetteEffect, lutEffect))
 
-			const ssaoOptions = {
-				resolutionScale: 1,
-				spp: 16,
-				distance: 1,
-				distancePower: 0.25,
-				power: 2,
-				bias: 250,
-				thickness: 0.075,
-				color: 0,
-				useNormalPass: false,
-				velocityDepthNormalPass: null,
-				normalTexture: null,
-				iterations: 1,
-				samples: 5
-			}
+			const motionBlurEffect = new MotionBlurEffect(velocityDepthNormalPass)
 
-			const hbaoEffect = new HBAOEffect(composer, camera, scene, hbaoOptions)
-
-			const ssaoEffect = new SSAOEffect(composer, camera, scene, ssaoOptions)
-
-			const ssaoPass = new POSTPROCESSING.EffectPass(camera, ssaoEffect)
-			const hbaoPass = new POSTPROCESSING.EffectPass(camera, hbaoEffect)
-
-			const gui3 = new HBAODebugGUI(hbaoEffect, hbaoOptions)
-			const gui4 = new SSAODebugGUI(ssaoEffect, ssaoOptions)
-
-			const hbaoText = document.createElement("div")
-			hbaoText.innerHTML = "HBAO"
-			hbaoText.style.position = "absolute"
-			hbaoText.style.bottom = "128px"
-			hbaoText.style.left = "64px"
-			hbaoText.style.color = "#00ff00"
-			hbaoText.style.fontFamily = "monospace"
-			hbaoText.style.fontSize = "48px"
-			hbaoText.style.fontWeight = "bold"
-			hbaoText.style.userSelect = "none"
-			hbaoText.style.letterSpacing = "4px"
-			hbaoText.style.pointerEvents = "none"
-			hbaoText.style.zIndex = "1000"
-			document.body.appendChild(hbaoText)
-
-			const ssaoText = document.createElement("div")
-			ssaoText.innerHTML = "SSAO"
-			ssaoText.style.position = "absolute"
-			ssaoText.style.bottom = "128px"
-			ssaoText.style.right = "64px"
-			ssaoText.style.color = "#00ff00"
-			ssaoText.style.fontFamily = "monospace"
-			ssaoText.style.fontSize = "48px"
-			ssaoText.style.fontWeight = "bold"
-			ssaoText.style.userSelect = "none"
-			ssaoText.style.letterSpacing = "4px"
-			ssaoText.style.pointerEvents = "none"
-			ssaoText.style.zIndex = "1000"
-			document.body.appendChild(ssaoText)
-
-			document.querySelector("#info").style.color = "black"
-			document.querySelector("#info").innerHTML = "HBAO & SSAO Comparison<br>Hold <b>SHIFT</b> to move blue line"
-
-			const toggle = document.createElement("div")
-			toggle.style.background = "white"
-			toggle.style.borderRadius = "8px"
-			toggle.style.padding = "8px"
-			toggle.style.cursor = "pointer"
-			toggle.innerHTML = "HBAO"
-			toggle.style.position = "absolute"
-			toggle.style.bottom = "64px"
-			toggle.style.left = "50%"
-			toggle.style.userSelect = "none"
-			toggle.style.transform = "translateX(-50%)"
-			toggle.style.boxShadow = "0 0 16px rgba(0, 0, 0, 0.25)"
-			toggle.innerHTML = `
-			AO only&ensp;<input type="checkbox" id="aoToggle" checked>
-			`
-			document.body.appendChild(toggle)
-
-			toggle.onclick = ev => {
-				if (ev.target === document.querySelector("#aoToggle")) return
-				document.querySelector("#aoToggle").checked = !document.querySelector("#aoToggle").checked
-
-				hbaoSsaoComparisonEffect.setAlbedo(!hbaoSsaoComparisonEffect.isAlbedo())
-			}
-
-			// gui3.pane.containerElem_.style.visibility = "hidden"
-			gui3.pane.containerElem_.style.left = "8px"
-			gui4.pane.containerElem_.style.right = "8px"
-
-			composer.addPass(hbaoPass)
-			composer.addPass(ssaoPass)
-
-			hbaoSsaoComparisonEffect = new HBAOSSAOComparisonEffect(hbaoEffect, ssaoEffect)
-
-			composer.addPass(new POSTPROCESSING.EffectPass(camera, hbaoSsaoComparisonEffect))
+			composer.addPass(new POSTPROCESSING.EffectPass(camera, motionBlurEffect))
 		} else {
-			if (!traaTest) {
-				if (fps >= 256) {
-					composer.addPass(new POSTPROCESSING.EffectPass(camera, ssgiEffect, bloomEffect, vignetteEffect, lutEffect))
-
-					const motionBlurEffect = new MotionBlurEffect(velocityDepthNormalPass)
-
-					composer.addPass(new POSTPROCESSING.EffectPass(camera, motionBlurEffect))
-				} else {
-					composer.addPass(new POSTPROCESSING.EffectPass(camera, ssgiEffect, vignetteEffect, lutEffect))
-					loadFiles--
-				}
-			}
+			composer.addPass(new POSTPROCESSING.EffectPass(camera, ssgiEffect, vignetteEffect, lutEffect))
+			loadFiles--
 		}
 
 		traaPass = new POSTPROCESSING.EffectPass(camera, traaEffect)
@@ -576,17 +420,15 @@ const initScene = async () => {
 
 		fxaaPass = new POSTPROCESSING.EffectPass(camera, fxaaEffect)
 
-		if (!isAoDemo) {
-			if (fps >= 256) {
-				setAA("TRAA")
+		if (fps >= 256) {
+			setAA("TRAA")
 
-				resize()
-			} else {
-				setAA("FXAA")
-				controls.enableDamping = false
+			resize()
+		} else {
+			setAA("FXAA")
+			controls.enableDamping = false
 
-				resize()
-			}
+			resize()
 		}
 
 		loop()
@@ -600,55 +442,6 @@ const initScene = async () => {
 }
 
 const clock = new Clock()
-
-let tappedTwice = false
-let tapTimeout
-
-const tapHandler = ev => {
-	if (ev.touches.length !== 1) return
-	if (!tappedTwice) {
-		tappedTwice = true
-		clearTimeout(tapTimeout)
-		tapTimeout = setTimeout(() => {
-			tappedTwice = false
-		}, 300)
-		return false
-	}
-
-	gui2.pane.element.style.visibility = "hidden"
-	toggleMenu()
-}
-
-document.body.addEventListener("touchstart", tapHandler)
-
-// source: https://stackoverflow.com/a/60207895
-function onLongPress(element, callback) {
-	let timer
-
-	element.addEventListener("touchstart", ev => {
-		if (ev.touches.length !== 1) {
-			cancel()
-			return
-		}
-		timer = setTimeout(() => {
-			timer = null
-			callback()
-		}, 500)
-	})
-
-	function cancel() {
-		clearTimeout(timer)
-	}
-
-	element.addEventListener("touchend", cancel)
-	element.addEventListener("touchmove", cancel)
-}
-
-onLongPress(document.body, () => {
-	document.fullscreenElement === null
-		? document.body.requestFullscreen({ navigationUI: "hide" })
-		: document.exitFullscreen()
-})
 
 const loop = () => {
 	if (stats?.dom.style.display !== "none") stats.begin()
@@ -688,15 +481,7 @@ const resize = () => {
 	composer.setSize(window.innerWidth, window.innerHeight)
 }
 
-// event handlers
 window.addEventListener("resize", resize)
-
-// source: https://stackoverflow.com/a/2117523/7626841
-function uuidv4() {
-	return ([1e7] + -1e3 + -4e3 + -8e3 + -1e11).replace(/[018]/g, c =>
-		(c ^ (crypto.getRandomValues(new Uint8Array(1))[0] & (15 >> (c / 4)))).toString(16)
-	)
-}
 
 const aaOptions = {
 	1: "TRAA",
@@ -724,8 +509,6 @@ document.addEventListener("keydown", ev => {
 	}
 
 	if (ev.code === "KeyQ") {
-		if (traaTest) return
-
 		postprocessingEnabled = !postprocessingEnabled
 
 		refreshLighting()
@@ -760,13 +543,8 @@ document.addEventListener("keydown", ev => {
 
 		const a = document.createElement("a") // Create <a>
 		a.href = data
-		a.download = "screenshot-" + uuidv4() + ".png" // File name Here
+		a.download = "screenshot-" + Math.random() + ".png" // File name Here
 		a.click() // Downloaded file
-	}
-
-	// if space was pressed
-	if (ev.code === "Space" && isAoDemo) {
-		hbaoSsaoComparisonEffect.setAlbedo(!hbaoSsaoComparisonEffect.isAlbedo())
 	}
 })
 
@@ -808,137 +586,15 @@ const setupAsset = asset => {
 	scene.add(asset.scene)
 	asset.scene.scale.setScalar(1)
 
-	let planeShaderMaterial
-	let cylinderShaderMaterial
-
-	if (traaTest) {
-		planeShaderMaterial = new THREE.ShaderMaterial({
-			vertexShader: /* glsl */ `
-			varying vec2 vUv;
-			void main() {
-			   vUv = uv;
-				gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
-			}
-			`,
-
-			fragmentShader: /* glsl */ `
-			varying vec2 vUv;
-			  void main() {
-				
-				float dist = distance(vUv, vec2(0., 1.));
-				dist = mod(dist, 0.05);
-				dist = step(dist, 0.025);
-					
-				vec3 color = vec3(dist);
-	
-				gl_FragColor = vec4(color, 1.0);
-			  }
-			`,
-			side: DoubleSide,
-			toneMapped: false
-		})
-
-		cylinderShaderMaterial = new THREE.ShaderMaterial({
-			vertexShader: /* glsl */ `
-			varying vec2 vUv;
-			void main() {
-			   vUv = uv;
-				gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
-			}
-			`,
-
-			fragmentShader: /* glsl */ `
-			varying vec2 vUv;
-			
-			  void main() {
-				float angle = atan(vUv.x * 2. - 1., vUv.y * 2. - 1.);
-
-				float a = cos(16. * angle);
-				a = step(a, 0.);
-
-				vec3 color = vec3(a);
-	
-				gl_FragColor = vec4(color, 1.0);
-			  }
-			`,
-			side: DoubleSide,
-			toneMapped: false
-		})
-	}
-
 	asset.scene.traverse(c => {
 		if (c.isMesh) {
 			c.castShadow = c.receiveShadow = true
 			c.material.depthWrite = true
-
 			if (c.material.transparent) c.material.alphaMap = c.material.roughnessMap
-
-			if (traaTest && c.name === "shader") c.material = planeShaderMaterial
-
-			if (traaTest && c.name === "Cube") c.material = new MeshNormalMaterial()
-
-			if (traaTest && c.name === "Cylinder") c.material = cylinderShaderMaterial
-
-			if (traaTest && c.name === "Plane") {
-				c.material.map.minFilter = NearestFilter
-				c.material.map.magFilter = NearestFilter
-			}
 		}
 
 		c.frustumCulled = false
 	})
-
-	if (traaTest && !window.location.search.includes("traa_test_model=true")) {
-		const material = new THREE.LineBasicMaterial({
-			color: 0x0000ff
-		})
-
-		for (let i = 0; i < 10; i++) {
-			const points = []
-			points.push(new THREE.Vector3(0, 8 - i * 0.35, 0))
-			points.push(new THREE.Vector3(8, 8 + i * 0.275, 0))
-
-			const geometry = new THREE.BufferGeometry().setFromPoints(points)
-
-			const line = new THREE.Line(geometry, material)
-			pointsObj.add(line)
-
-			line.position.set(6, 6, 0)
-		}
-
-		const points = []
-
-		for (let i = 0; i < 100; i++) {
-			const y = Math.abs(Math.cos(i * Math.PI * 0.1)) * 2
-			points.push(new THREE.Vector3((i / 100) * 8, y, 0))
-		}
-
-		const geometry = new THREE.BufferGeometry().setFromPoints(points)
-
-		const line = new THREE.Line(geometry, material)
-		pointsObj.add(line)
-
-		line.position.set(6, 8, 0)
-
-		let points2 = []
-
-		let geometry2 = new THREE.BufferGeometry().setFromPoints(points2)
-		let line2 = new THREE.Line(geometry2, material)
-
-		for (let i = 0; i < 1000; i++) {
-			const y = Math.abs(Math.cos(i * Math.PI * 0.01)) * 2
-			points2.push(new THREE.Vector3((i / 1000) * 8, y, 0))
-
-			if (i % 2 === 0) {
-				pointsObj.add(line2)
-				geometry2 = new THREE.BufferGeometry().setFromPoints(points2)
-				line2 = new THREE.Line(geometry2, material)
-				line2.position.set(6, 8, 0)
-
-				points2 = []
-			}
-		}
-	}
 
 	const clips = asset.animations
 
