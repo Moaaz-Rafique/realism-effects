@@ -1,20 +1,16 @@
 import { getGPUTier } from "detect-gpu"
 import dragDrop from "drag-drop"
 import * as POSTPROCESSING from "postprocessing"
-import { MotionBlurEffect, SSGIEffect, TRAAEffect } from "realism-effects"
+import { MotionBlurEffect, SSGIEffect, TRAAEffect, VelocityDepthNormalPass } from "realism-effects"
 import Stats from "stats.js"
 import * as THREE from "three"
 import {
 	Box3,
 	Clock,
-	Color,
 	CubeTextureLoader,
 	DirectionalLight,
-	DoubleSide,
 	EquirectangularReflectionMapping,
 	FloatType,
-	MeshNormalMaterial,
-	NearestFilter,
 	Object3D,
 	Vector3
 } from "three"
@@ -24,14 +20,9 @@ import { GLTFLoader } from "three/examples/jsm/loaders/GLTFLoader.js"
 import { RGBELoader } from "three/examples/jsm/loaders/RGBELoader"
 import { GroundProjectedSkybox } from "three/examples/jsm/objects/GroundProjectedSkybox"
 import { Pane } from "tweakpane"
-import { VelocityDepthNormalPass } from "../src/temporal-reproject/pass/VelocityDepthNormalPass"
+// import { VelocityDepthNormalPass } from "../src/temporal-reproject/pass/VelocityDepthNormalPass"
 import { SSGIDebugGUI } from "./SSGIDebugGUI"
 import "./style.css"
-import { HBAOEffect } from "../src/hbao/HBAOEffect"
-import { HBAODebugGUI } from "./HBAODebugGUI"
-import { SSAODebugGUI } from "./SSAODebugGUI"
-import { SSAOEffect } from "../src/ssao/SSAOEffect"
-import { HBAOSSAOComparisonEffect } from "./HBAOSSAOComparisonEffect"
 
 let traaEffect
 let traaPass
@@ -39,7 +30,6 @@ let smaaPass
 let fxaaPass
 let ssgiEffect
 let postprocessingEnabled = true
-let hbaoSsaoComparisonEffect
 let pane
 let gui2
 let envMesh
@@ -61,8 +51,6 @@ const camera = new THREE.PerspectiveCamera(40, window.innerWidth / window.innerH
 scene.add(camera)
 
 const canvas = document.querySelector(".webgl")
-const infoEl = document.querySelector("#info")
-infoEl.style.display = "block"
 
 let rendererCanvas = canvas
 
@@ -240,31 +228,30 @@ let url
 let loadFiles
 
 url = "squid_game.optimized.glb"
-loadFiles = 8
+loadFiles = 1
 
 let lastScene
 
-gltflLoader.load(url, asset => {
-	if (url === "time_machine.optimized.glb") asset.scene.rotation.y += Math.PI / 2
-	setupAsset(asset)
-	initScene()
-})
+// gltflLoader.load(url, asset => {
+// 	if (url === "time_machine.optimized.glb") asset.scene.rotation.y += Math.PI / 2
+// 	setupAsset(asset)
+// })
 
-const loadingEl = document.querySelector("#loading")
+// const loadingEl = document.querySelector("#loading")
 
-let loadedCount = 0
-THREE.DefaultLoadingManager.onProgress = () => {
-	loadedCount++
+// let loadedCount = 0
+// THREE.DefaultLoadingManager.onProgress = () => {
+// 	loadedCount++
 
-	if (loadedCount === loadFiles) {
-		setTimeout(() => {
-			if (loadingEl) loadingEl.remove()
-		}, 150)
-	}
+// 	if (loadedCount === loadFiles) {
+// 		setTimeout(() => {
+// 			if (loadingEl) loadingEl.remove()
+// 		}, 150)
+// 	}
 
-	const progress = Math.round((loadedCount / loadFiles) * 100)
-	if (loadingEl) loadingEl.textContent = progress + "%"
-}
+// 	const progress = Math.round((loadedCount / loadFiles) * 100)
+// 	if (loadingEl) loadingEl.textContent = progress + "%"
+// }
 
 let mixer
 
@@ -437,7 +424,6 @@ const initScene = async () => {
 
 		pane.element.style.display = display
 		gui2.pane.element.style.display = display
-		infoEl.style.display = "block"
 	})
 }
 
@@ -498,7 +484,6 @@ const toggleMenu = () => {
 
 	pane.element.style.display = display
 	gui2.pane.element.style.display = display
-	infoEl.style.display = display
 }
 
 document.addEventListener("keydown", ev => {
@@ -637,3 +622,5 @@ const setupAsset = asset => {
 
 	requestAnimationFrame(refreshLighting)
 }
+
+initScene()
