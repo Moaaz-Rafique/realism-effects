@@ -178,16 +178,16 @@ const initEnvMap = async envMap => {
 	// setEnvMesh(envMap)
 }
 
-const cubeMapTest = () => {
-	new CubeTextureLoader()
-		.setPath("cubemap/yokohama_3/")
-		.load(["posx.jpg", "negx.jpg", "posy.jpg", "negy.jpg", "posz.jpg", "negz.jpg"], envMesh => {
-			scene.background = envMesh
-			scene.environment = envMesh
+// const cubeMapTest = () => {
+// 	new CubeTextureLoader()
+// 		.setPath("cubemap/yokohama_3/")
+// 		.load(["posx.jpg", "negx.jpg", "posy.jpg", "negy.jpg", "posz.jpg", "negz.jpg"], envMesh => {
+// 			scene.background = envMesh
+// 			scene.environment = envMesh
 
-			setEnvMesh(envMesh)
-		})
-}
+// 			setEnvMesh(envMesh)
+// 		})
+// }
 
 const setEnvMesh = envMap => {
 	envMesh?.removeFromParent()
