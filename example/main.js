@@ -189,18 +189,18 @@ const initEnvMap = async envMap => {
 // 		})
 // }
 
-const setEnvMesh = envMap => {
-	envMesh?.removeFromParent()
-	envMesh?.material.dispose()
-	envMesh?.geometry.dispose()
+// const setEnvMesh = envMap => {
+// 	envMesh?.removeFromParent()
+// 	envMesh?.material.dispose()
+// 	envMesh?.geometry.dispose()
 
-	envMesh = new GroundProjectedSkybox(envMap)
-	envMesh.radius = 100
-	envMesh.height = 20
-	envMesh.scale.setScalar(100)
-	envMesh.updateMatrixWorld()
-	scene.add(envMesh)
-}
+// 	envMesh = new GroundProjectedSkybox(envMap)
+// 	envMesh.radius = 100
+// 	envMesh.height = 20
+// 	envMesh.scale.setScalar(100)
+// 	envMesh.updateMatrixWorld()
+// 	scene.add(envMesh)
+// }
 
 rgbeLoader.load("hdr/1.hdr", initEnvMap)
 
