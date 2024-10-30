@@ -67,9 +67,9 @@ const renderer = new THREE.WebGLRenderer({
 	powerPreference: "high-performance",
 	premultipliedAlpha: false,
 	stencil: false,
-	antialias: false,
-	alpha: false,
-	preserveDrawingBuffer: true
+	antialias: false
+	// alpha: false,
+	// preserveDrawingBuffer: true
 })
 
 renderer.autoClear = false
@@ -175,7 +175,7 @@ const initEnvMap = async envMap => {
 	scene.environment = envMap
 	scene.background = null
 
-	setEnvMesh(envMap)
+	// setEnvMesh(envMap)
 }
 
 const cubeMapTest = () => {
@@ -202,40 +202,29 @@ const setEnvMesh = envMap => {
 	scene.add(envMesh)
 }
 
-const environments = [
-	"blue_grotto",
-	"cave_wall",
-	"chinese_garden",
-	"future_parking",
-	"quarry_02",
-	"snowy_field",
-	"spruit_sunrise",
-	"vintage_measuring_lab",
-	"# cube map test"
-]
-
-rgbeLoader.load("hdr/chinese_garden_1k.hdr", initEnvMap)
+rgbeLoader.load("hdr/1.hdr", initEnvMap)
 
 const gltflLoader = new GLTFLoader()
 
 const draco = new DRACOLoader()
 draco.setDecoderConfig({ type: "js" })
 draco.setDecoderPath("https://www.gstatic.com/draco/v1/decoders/")
-gltflLoader.setPath("gltf/")
+// gltflLoader.setPath("gltf/")
 gltflLoader.setDRACOLoader(draco)
 
 let url
 let loadFiles
 
 url = "squid_game.optimized.glb"
+url = "/assets/start13.glb"
 loadFiles = 1
 
 let lastScene
 
-// gltflLoader.load(url, asset => {
-// 	if (url === "time_machine.optimized.glb") asset.scene.rotation.y += Math.PI / 2
-// 	setupAsset(asset)
-// })
+gltflLoader.load(url, asset => {
+	// if (url === "time_machine.optimized.glb") asset.scene.rotation.y += Math.PI / 2
+	setupAsset(asset)
+})
 
 // const loadingEl = document.querySelector("#loading")
 
@@ -290,7 +279,7 @@ const initScene = async () => {
 		directLightMultiplier: 1,
 		steps: 20,
 		refineSteps: 4,
-		spp: 1,
+		spp: 10,
 		resolutionScale: 1,
 		missedRays: false
 	}
@@ -321,49 +310,41 @@ const initScene = async () => {
 			setAA(ev.value)
 		})
 
-	const modelNames = [
-		"amg",
-		"chevrolet",
-		"clay_bust_study",
-		"cyberpunk_bike",
-		"cyber_samurai",
-		"darth_vader",
-		"flashbang_grenade",
-		"motorbike",
-		"statue",
-		"squid_game",
-		"swordsman"
-	]
+	// const modelNames = [
+	// 	"amg",
+	// 	"chevrolet",
+	// 	"clay_bust_study",
+	// 	"cyberpunk_bike",
+	// 	"cyber_samurai",
+	// 	"darth_vader",
+	// 	"flashbang_grenade",
+	// 	"motorbike",
+	// 	"statue",
+	// 	"squid_game",
+	// 	"swordsman"
+	// ]
 
-	const sceneParams = { Environment: "chinese_garden", Model: "squid_game" }
-
-	const envObject = {}
-	const modelObject = {}
-
-	environments.forEach(value => (envObject[value] = value))
-	modelNames.forEach(value => (modelObject[value] = value))
+	const sceneParams = { Environment: 1 }
+	const environments = [1, 2, 3, 4, 5, 6, 7]
 
 	const assetsFolder = pane.addFolder({ title: "Assets" })
 	assetsFolder
 		.addInput(sceneParams, "Environment", {
-			options: envObject
+			min: 1,
+			max: environments.length,
+			step: 1
 		})
 		.on("change", ev => {
-			if (ev.value === "# cube map test") {
-				cubeMapTest()
-				return
-			}
-
-			rgbeLoader.load("hdr/" + ev.value + "_1k.hdr", initEnvMap)
+			const envIndex = ev.value - 1
+			rgbeLoader.load("hdr/" + environments[envIndex].toString() + ".hdr", initEnvMap)
 		})
-
-	assetsFolder
-		.addInput(sceneParams, "Model", {
-			options: modelObject
-		})
-		.on("change", ev => {
-			gltflLoader.load(ev.value + ".optimized.glb", setupAsset)
-		})
+	// assetsFolder
+	// 	.addInput(sceneParams, "Model", {
+	// 		options: modelObject
+	// 	})
+	// 	.on("change", ev => {
+	// 		gltflLoader.load(ev.value + ".optimized.glb", setupAsset)
+	// 	})
 
 	const bloomEffect = new POSTPROCESSING.BloomEffect({
 		intensity: 1,
