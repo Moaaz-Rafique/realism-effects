@@ -2,26 +2,14 @@ import { getGPUTier } from "detect-gpu"
 import dragDrop from "drag-drop"
 import * as POSTPROCESSING from "postprocessing"
 import { MotionBlurEffect, SSGIEffect, TRAAEffect, VelocityDepthNormalPass } from "realism-effects"
-import Stats from "stats.js"
 import * as THREE from "three"
-import {
-	Box3,
-	Clock,
-	CubeTextureLoader,
-	DirectionalLight,
-	EquirectangularReflectionMapping,
-	FloatType,
-	Object3D,
-	Vector3
-} from "three"
+import { Box3, Clock, DirectionalLight, EquirectangularReflectionMapping, FloatType, Object3D, Vector3 } from "three"
 import { OrbitControls } from "three/examples/jsm/controls/OrbitControls.js"
 import { DRACOLoader } from "three/examples/jsm/loaders/DRACOLoader"
 import { GLTFLoader } from "three/examples/jsm/loaders/GLTFLoader.js"
 import { RGBELoader } from "three/examples/jsm/loaders/RGBELoader"
 import { GroundProjectedSkybox } from "three/examples/jsm/objects/GroundProjectedSkybox"
 import { Pane } from "tweakpane"
-// import { VelocityDepthNormalPass } from "../src/temporal-reproject/pass/VelocityDepthNormalPass"
-import { SSGIDebugGUI } from "./SSGIDebugGUI"
 import "./style.css"
 
 let traaEffect
@@ -31,7 +19,6 @@ let fxaaPass
 let ssgiEffect
 let postprocessingEnabled = true
 let pane
-let gui2
 let envMesh
 let fps
 const guiParams = {
@@ -44,10 +31,6 @@ scene.matrixWorldAutoUpdate = false
 window.scene = scene
 
 const camera = new THREE.PerspectiveCamera(40, window.innerWidth / window.innerHeight, 0.01, 250)
-
-// const w = window.innerWidth
-// const h = window.innerHeight
-// const camera = new THREE.OrthographicCamera(w / -2 / 100, w / 2 / 100, h / 2 / 100, h / -2 / 100, 0.01, 250)
 scene.add(camera)
 
 const canvas = document.querySelector(".webgl")
@@ -159,12 +142,6 @@ light.shadow.camera.bottom = -s
 light.shadow.camera.right = s
 light.shadow.camera.top = s
 
-const stats = new Stats()
-stats.showPanel(1)
-stats.dom.style.top = "initial"
-stats.dom.style.bottom = "0"
-document.body.appendChild(stats.dom)
-
 const rgbeLoader = new RGBELoader().setDataType(FloatType)
 
 const initEnvMap = async envMap => {
@@ -175,32 +152,21 @@ const initEnvMap = async envMap => {
 	scene.environment = envMap
 	scene.background = null
 
-	// setEnvMesh(envMap)
+	setEnvMesh(envMap)
 }
 
-// const cubeMapTest = () => {
-// 	new CubeTextureLoader()
-// 		.setPath("cubemap/yokohama_3/")
-// 		.load(["posx.jpg", "negx.jpg", "posy.jpg", "negy.jpg", "posz.jpg", "negz.jpg"], envMesh => {
-// 			scene.background = envMesh
-// 			scene.environment = envMesh
+const setEnvMesh = envMap => {
+	envMesh?.removeFromParent()
+	envMesh?.material.dispose()
+	envMesh?.geometry.dispose()
 
-// 			setEnvMesh(envMesh)
-// 		})
-// }
-
-// const setEnvMesh = envMap => {
-// 	envMesh?.removeFromParent()
-// 	envMesh?.material.dispose()
-// 	envMesh?.geometry.dispose()
-
-// 	envMesh = new GroundProjectedSkybox(envMap)
-// 	envMesh.radius = 100
-// 	envMesh.height = 20
-// 	envMesh.scale.setScalar(100)
-// 	envMesh.updateMatrixWorld()
-// 	scene.add(envMesh)
-// }
+	envMesh = new GroundProjectedSkybox(envMap)
+	envMesh.radius = 100
+	envMesh.height = 20
+	envMesh.scale.setScalar(100)
+	envMesh.updateMatrixWorld()
+	scene.add(envMesh)
+}
 
 rgbeLoader.load("hdr/1.hdr", initEnvMap)
 
@@ -222,27 +188,8 @@ loadFiles = 1
 let lastScene
 
 gltflLoader.load(url, asset => {
-	// if (url === "time_machine.optimized.glb") asset.scene.rotation.y += Math.PI / 2
 	setupAsset(asset)
 })
-
-// const loadingEl = document.querySelector("#loading")
-
-// let loadedCount = 0
-// THREE.DefaultLoadingManager.onProgress = () => {
-// 	loadedCount++
-
-// 	if (loadedCount === loadFiles) {
-// 		setTimeout(() => {
-// 			if (loadingEl) loadingEl.remove()
-// 		}, 150)
-// 	}
-
-// 	const progress = Math.round((loadedCount / loadFiles) * 100)
-// 	if (loadingEl) loadingEl.textContent = progress + "%"
-// }
-
-let mixer
 
 const toRad = Math.PI / 180
 
@@ -361,9 +308,6 @@ const initScene = async () => {
 
 	ssgiEffect = new SSGIEffect(scene, camera, velocityDepthNormalPass, options)
 
-	gui2 = new SSGIDebugGUI(ssgiEffect, options)
-	gui2.pane.containerElem_.style.left = "8px"
-
 	new POSTPROCESSING.LUT3dlLoader().load("lut.3dl").then(lutTexture => {
 		const lutEffect = new POSTPROCESSING.LUT3DEffect(lutTexture)
 
@@ -404,20 +348,20 @@ const initScene = async () => {
 		const display = pane.element.style.display === "none" ? "block" : "none"
 
 		pane.element.style.display = display
-		gui2.pane.element.style.display = display
 	})
 }
 
 const clock = new Clock()
 
 const loop = () => {
-	if (stats?.dom.style.display !== "none") stats.begin()
-
+	if (lastScene?.children) {
+		// lastScene.children[0].position += Math.sin(clock.elapsedTime) * 100
+		// lastScene.children[0].updateMatrixWorld()
+	}
 	const dt = clock.getDelta()
 
-	if (mixer) {
-		mixer.update(dt)
-		lastScene.updateMatrixWorld()
+	if (true) {
+		lastScene?.updateMatrixWorld?.()
 		refreshLighting()
 	}
 
@@ -433,7 +377,6 @@ const loop = () => {
 		renderer.render(scene, camera)
 	}
 
-	if (stats?.dom.style.display !== "none") stats.end()
 	window.requestAnimationFrame(loop)
 }
 
@@ -461,56 +404,22 @@ const aaOptions = {
 const aaValues = Object.values(aaOptions)
 
 const toggleMenu = () => {
-	const display = gui2.pane.element.style.display === "none" ? "block" : "none"
-
-	pane.element.style.display = display
-	gui2.pane.element.style.display = display
+	pane.element.style.display = pane.element.style.display === "none" ? "block" : "none"
 }
 
 document.addEventListener("keydown", ev => {
 	if (document.activeElement.tagName !== "INPUT") {
 		const value = aaOptions[ev.key]
-
 		if (value) setAA(value)
 	}
 
 	if (ev.code === "KeyQ") {
 		postprocessingEnabled = !postprocessingEnabled
-
 		refreshLighting()
 	}
-
 	if (ev.code === "Tab") {
 		ev.preventDefault()
-
 		toggleMenu()
-	}
-
-	if (ev.code === "ArrowLeft") {
-		let index = aaValues.indexOf(guiParams.Method)
-		index--
-
-		if (index === -1) index = aaValues.length - 1
-
-		setAA(aaOptions[index + 1])
-	}
-
-	if (ev.code === "ArrowRight") {
-		let index = aaValues.indexOf(guiParams.Method)
-		index++
-
-		if (index === aaValues.length) index = 0
-
-		setAA(aaOptions[index + 1])
-	}
-
-	if (ev.code === "KeyP") {
-		const data = renderer.domElement.toDataURL()
-
-		const a = document.createElement("a") // Create <a>
-		a.href = data
-		a.download = "screenshot-" + Math.random() + ".png" // File name Here
-		a.click() // Downloaded file
 	}
 })
 
@@ -545,62 +454,38 @@ const setupAsset = asset => {
 				c.material.dispose()
 			}
 		})
-
-		mixer = null
 	}
 
 	scene.add(asset.scene)
 	asset.scene.scale.setScalar(1)
 
-	asset.scene.traverse(c => {
-		if (c.isMesh) {
-			c.castShadow = c.receiveShadow = true
-			c.material.depthWrite = true
-			if (c.material.transparent) c.material.alphaMap = c.material.roughnessMap
+	asset.scene.traverse(child => {
+		if (child.isMesh) {
+			child.castShadow = child.receiveShadow = true
+			child.material.depthWrite = true
+			if (child.material.transparent) child.material.alphaMap = child.material.roughnessMap
 		}
 
-		c.frustumCulled = false
+		child.frustumCulled = false
 	})
-
-	const clips = asset.animations
-
-	if (clips.length) {
-		mixer = new THREE.AnimationMixer(asset.scene)
-
-		for (const clip of clips) {
-			const action = mixer.clipAction(clip)
-
-			if (action) action.play()
-		}
-	}
 
 	const bb = new Box3()
 	bb.setFromObject(asset.scene)
-
 	const height = bb.max.y - bb.min.y
 	const width = Math.max(bb.max.x - bb.min.x, bb.max.z - bb.min.z)
 	const targetHeight = 15
 	const targetWidth = 45
-
 	const scaleWidth = targetWidth / width
 	const scaleHeight = targetHeight / height
-
 	asset.scene.scale.multiplyScalar(Math.min(scaleWidth, scaleHeight))
-
 	asset.scene.updateMatrixWorld()
-
 	bb.setFromObject(asset.scene)
-
 	const center = new Vector3()
 	bb.getCenter(center)
-
 	center.y = bb.min.y
 	asset.scene.position.sub(center)
-
 	scene.updateMatrixWorld()
-
 	lastScene = asset.scene
-
 	requestAnimationFrame(refreshLighting)
 }
 

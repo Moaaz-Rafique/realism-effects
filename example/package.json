@@ -17,6 +17,7 @@
 		"vite-plugin-wasm": "^3.2.1"
 	},
 	"dependencies": {
+		"camera-controls": "^2.9.0",
 		"copy-to-clipboard": "^3.3.2",
 		"detect-gpu": "^5.0.13",
 		"drag-drop": "^7.2.0",

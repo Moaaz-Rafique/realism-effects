@@ -93,6 +93,11 @@ blob-to-buffer@^1.2.9:
   resolved "https://registry.npmjs.org/blob-to-buffer/-/blob-to-buffer-1.2.9.tgz"
   integrity sha512-BF033y5fN6OCofD3vgHmNtwZWRcq9NLyyxyILx9hfMy1sXYy4ojFl765hJ2lP0YaN2fuxPaLO2Vzzoxy0FLFFA==
 
+camera-controls@^2.9.0:
+  version "2.9.0"
+  resolved "https://registry.yarnpkg.com/camera-controls/-/camera-controls-2.9.0.tgz#c3f67e702c2b68ae87418ca047c867e6494be2e8"
+  integrity sha512-TpCujnP0vqPppTXXJRYpvIy0xq9Tro6jQf2iYUxlDpPCNxkvE/XGaTuwIxnhINOkVP/ob2CRYXtY3iVYXeMEzA==
+
 chalk@^4.1.2:
   version "4.1.2"
   resolved "https://registry.npmjs.org/chalk/-/chalk-4.1.2.tgz"
