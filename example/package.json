@@ -17,6 +17,7 @@
 		"vite-plugin-wasm": "^3.2.1"
 	},
 	"dependencies": {
+		"@tweenjs/tween.js": "^25.0.0",
 		"camera-controls": "^2.9.0",
 		"copy-to-clipboard": "^3.3.2",
 		"detect-gpu": "^5.0.13",

@@ -3,14 +3,16 @@ import dragDrop from "drag-drop"
 import * as POSTPROCESSING from "postprocessing"
 import { MotionBlurEffect, SSGIEffect, TRAAEffect, VelocityDepthNormalPass } from "realism-effects"
 import * as THREE from "three"
-import { Box3, Clock, DirectionalLight, EquirectangularReflectionMapping, FloatType, Object3D, Vector3 } from "three"
-import { OrbitControls } from "three/examples/jsm/controls/OrbitControls.js"
+import { Clock, DirectionalLight, EquirectangularReflectionMapping, FloatType, Object3D, Vector3 } from "three"
 import { DRACOLoader } from "three/examples/jsm/loaders/DRACOLoader"
 import { GLTFLoader } from "three/examples/jsm/loaders/GLTFLoader.js"
 import { RGBELoader } from "three/examples/jsm/loaders/RGBELoader"
 import { GroundProjectedSkybox } from "three/examples/jsm/objects/GroundProjectedSkybox"
 import { Pane } from "tweakpane"
 import "./style.css"
+import CameraControls from "camera-controls"
+
+CameraControls.install({ THREE: THREE })
 
 let traaEffect
 let traaPass
@@ -30,7 +32,7 @@ const scene = new THREE.Scene()
 scene.matrixWorldAutoUpdate = false
 window.scene = scene
 
-const camera = new THREE.PerspectiveCamera(40, window.innerWidth / window.innerHeight, 0.01, 250)
+const camera = new THREE.PerspectiveCamera(40, window.innerWidth / window.innerHeight, 0.01, 10000)
 scene.add(camera)
 
 const canvas = document.querySelector(".webgl")
@@ -96,15 +98,15 @@ const setAA = value => {
 }
 
 // since using "rendererCanvas" doesn't work when using an offscreen canvas
-const controls = new OrbitControls(camera, document.querySelector("#orbitControlsDomElem"))
-controls.enableDamping = true
+const cameraControls = new CameraControls(camera, document.querySelector("#orbitControlsDomElem"))
+// cameraControls.enableDamping = true
 
-const cameraY = 8.75
-camera.position.fromArray([0, cameraY, 25])
-controls.target.set(0, cameraY, 0)
-controls.maxPolarAngle = Math.PI / 2
-controls.minDistance = 5
-window.controls = controls
+// const cameraY = 8.75
+// camera.position.fromArray([0, cameraY, 25])
+// cameraControls.target.set(0, cameraY, 0)
+// cameraControls.maxPolarAngle = Math.PI / 2
+// cameraControls.minDistance = 5
+window.controls = cameraControls
 window.camera = camera
 
 const composer = new POSTPROCESSING.EffectComposer(renderer)
@@ -161,9 +163,9 @@ const setEnvMesh = envMap => {
 	envMesh?.geometry.dispose()
 
 	envMesh = new GroundProjectedSkybox(envMap)
-	envMesh.radius = 100
+	envMesh.radius = 1000
 	envMesh.height = 20
-	envMesh.scale.setScalar(100)
+	envMesh.scale.setScalar(1000)
 	envMesh.updateMatrixWorld()
 	scene.add(envMesh)
 }
@@ -338,7 +340,7 @@ const initScene = async () => {
 			resize()
 		} else {
 			setAA("FXAA")
-			controls.enableDamping = false
+			cameraControls.enableDamping = false
 
 			resize()
 		}
@@ -354,9 +356,9 @@ const initScene = async () => {
 const clock = new Clock()
 
 const loop = () => {
-	if (lastScene?.children) {
-		// lastScene.children[0].position += Math.sin(clock.elapsedTime) * 100
-		// lastScene.children[0].updateMatrixWorld()
+	if (lastScene?.children?.[0]) {
+		lastScene.children[0].position.y += Math.sin(clock.elapsedTime)
+		lastScene.children[0].updateMatrixWorld()
 	}
 	const dt = clock.getDelta()
 
@@ -365,9 +367,9 @@ const loop = () => {
 		refreshLighting()
 	}
 
-	if (controls.enableDamping) controls.dampingFactor = 0.075 * 120 * Math.max(1 / 1000, dt)
+	if (cameraControls.enableDamping) cameraControls.dampingFactor = 0.075 * 120 * Math.max(1 / 1000, dt)
 
-	controls.update()
+	cameraControls.update(dt)
 	camera.updateMatrixWorld()
 
 	if (postprocessingEnabled) {
@@ -445,7 +447,6 @@ const setupAsset = asset => {
 	if (pointsObj.children.length > 0) {
 		pointsObj.removeFromParent()
 	}
-
 	if (lastScene) {
 		lastScene.removeFromParent()
 		lastScene.traverse(c => {
@@ -457,7 +458,7 @@ const setupAsset = asset => {
 	}
 
 	scene.add(asset.scene)
-	asset.scene.scale.setScalar(1)
+	asset.scene.scale.setScalar(0.05)
 
 	asset.scene.traverse(child => {
 		if (child.isMesh) {
@@ -469,23 +470,9 @@ const setupAsset = asset => {
 		child.frustumCulled = false
 	})
 
-	const bb = new Box3()
-	bb.setFromObject(asset.scene)
-	const height = bb.max.y - bb.min.y
-	const width = Math.max(bb.max.x - bb.min.x, bb.max.z - bb.min.z)
-	const targetHeight = 15
-	const targetWidth = 45
-	const scaleWidth = targetWidth / width
-	const scaleHeight = targetHeight / height
-	asset.scene.scale.multiplyScalar(Math.min(scaleWidth, scaleHeight))
-	asset.scene.updateMatrixWorld()
-	bb.setFromObject(asset.scene)
-	const center = new Vector3()
-	bb.getCenter(center)
-	center.y = bb.min.y
-	asset.scene.position.sub(center)
 	scene.updateMatrixWorld()
 	lastScene = asset.scene
+	cameraControls.fitToBox(lastScene)
 	requestAnimationFrame(refreshLighting)
 }
 
